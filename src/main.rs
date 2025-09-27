@@ -100,6 +100,7 @@ fn usage() -> ! {
     let argv0 = env::args().next().unwrap_or_else(|| "program".to_string());
     eprintln!("usage: {} [u]", argv0);
     eprintln!("  u  unblock");
+    eprintln!("  h  usage");
     process::exit(1);
 }
 
@@ -131,17 +132,16 @@ fn main() {
 
     check_root().unwrap_or_else(|err|die(&err));
 
-    match args.len() {
-        2 if args[1] == "u" => {
-            if let Err(e) = restore_hosts() {
-                die(&e);
-            }
+    match args.get(1).map(|s| s.as_str()) {
+        Some("u") => {
+            restore_hosts().unwrap_or_else(|e| die(&e));
         }
-        1 => {
-            if let Err(e) = block_sites(&config.blocked_domains) {
-                die(&e);
-            }
+        Some("h") => usage(),
+        Some(_) => usage(),
+        None => {
+            block_sites(&config.blocked_domains)
+                .unwrap_or_else(|e| die(&e));
         }
-        _ => usage(),
     }
+
 }
