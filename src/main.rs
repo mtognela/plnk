@@ -108,20 +108,20 @@ fn check_root() -> Result<(), &'static str> {
     #[cfg(unix)]
     {
         if let Err(_) = fs::OpenOptions::new().append(true).open(HOSTS_FILE) {
-            return  Err("must run as root");
+            return Err("must run as root");
         }
         Ok(())
     }
 }
 
 fn load_config() -> Result<Config, String> {
-    let config_path = env::var("PLNK_CONFIG").unwrap_or_else(|_| format!("Failed to Read {}", PLNK_ENV));
+    let config_path = env::var("PLNK_CONFIG").unwrap_or_else(|_| format!("failed to Read {}", PLNK_ENV));
 
     let content = fs::read_to_string(Path::new(&config_path))
-        .map_err(|_| format!("Failed to read {}", config_path))?;
+        .map_err(|_| format!("failed to read {}", config_path))?;
 
     let config: Config = toml::from_str(&content)
-        .map_err(|err| format!("Failed to parse {}: {}", config_path, err))?;
+        .map_err(|err| format!("failed to parse {}: {}", config_path, err))?;
 
     Ok(config)
 }
