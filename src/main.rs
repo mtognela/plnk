@@ -34,13 +34,13 @@ fn backup_hosts() -> io::Result<()> {
     Ok(())
 }
 
-fn restore_hosts() -> Result<(), String> {
+fn restore_hosts() -> Result<(), &'static str> {
     if !file_exists(HOSTS_BACKUP) {
-        return Err("no backup file found".to_string());
+        return Err("no backup file found");
     }
 
     if let Err(_) = fs::rename(HOSTS_BACKUP, HOSTS_FILE) {
-        return Err("failed to restore hosts file".to_string());
+        return Err("failed to restore hosts file");
     }
 
     println!("urls unblocked");
@@ -89,7 +89,7 @@ fn block_sites(sites_to_block: &Vec<String>) -> Result<(), String> {
 
     for domain in sites_to_block {
         writeln!(hosts_file, "{} {}", URL_TO_REDIRECT, domain)
-            .map_err(|_| "failed to write to hosts file".to_string())?;
+            .map_err(|_| "failed to write to hosts file")?;
     }
 
     println!("urls blocked");
@@ -103,11 +103,11 @@ fn usage() -> ! {
     process::exit(1);
 }
 
-fn check_root() -> Result<(), String> {
+fn check_root() -> Result<(), &'static str> {
     #[cfg(unix)]
     {
         if let Err(_) = fs::OpenOptions::new().append(true).open(HOSTS_FILE) {
-            return  Err("must run as root".to_string());
+            return  Err("must run as root");
         }
         Ok(())
     }
