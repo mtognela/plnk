@@ -1,4 +1,4 @@
-use std::env;
+use std::env as env;
 use std::fs;
 use std::io::{self, Write, BufRead, BufReader};
 use std::path::Path;
@@ -8,7 +8,7 @@ use serde::Deserialize;
 const HOSTS_FILE: &str = "/etc/hosts";
 const HOSTS_BACKUP: &str = "/etc/hosts.backup";
 const URL_TO_REDIRECT: &str = "127.0.0.1";
-const CONFIG_FILE: &str = "config.toml";
+const PLNK_ENV: &str = "PLNK_CONFIG";
 
 #[derive(Deserialize)]
 struct Config {
@@ -114,11 +114,13 @@ fn check_root() -> Result<(), &'static str> {
 }
 
 fn load_config() -> Result<Config, String> {
-    let content = fs::read_to_string(CONFIG_FILE)
-        .map_err(|_| format!("Failed to read {}", CONFIG_FILE))?;
+    let config_path = env::var("PLNK_CONFIG").unwrap_or_else(|_| format!("Failed to Read {}", PLNK_ENV));
+
+    let content = fs::read_to_string(Path::new(&config_path))
+        .map_err(|_| format!("Failed to read {}", config_path))?;
 
     let config: Config = toml::from_str(&content)
-        .map_err(|err| format!("Failed to parse {}: {}", CONFIG_FILE, err))?;
+        .map_err(|err| format!("Failed to parse {}: {}", config_path, err))?;
 
     Ok(config)
 }
