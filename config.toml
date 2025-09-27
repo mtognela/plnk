@@ -1,0 +1,4 @@
+blocked_domains = [
+    "gitlab.com",
+    "google.com"
+]
