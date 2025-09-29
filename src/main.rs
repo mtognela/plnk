@@ -1,147 +1,207 @@
-use std::env as env;
+use std::env::args;
+use std::env::var;
+use std::fmt;
+use std::fmt::Formatter;
 use std::fs;
-use std::io::{self, Write, BufRead, BufReader};
+use std::fs::read_to_string;
+use std::fs::rename;
+use std::fs::write;
+use std::io::{Write, BufRead, BufReader};
 use std::path::Path;
-use std::process;
+use std::process::exit;
 use serde::Deserialize;
+use std::fmt::Display;
 
 const HOSTS_FILE: &str = "/etc/hosts";
 const HOSTS_BACKUP: &str = "/etc/hosts.backup";
 const URL_TO_REDIRECT: &str = "127.0.0.1";
 const PLNK_ENV: &str = "PLNK_CONFIG";
+const PLNK_MARKER: &str = "# plnk url blocking";
 
 #[derive(Deserialize)]
 struct Config {
     blocked_domains: Vec<String>,
 }
 
-fn die(msg: &str) -> ! {
-    eprintln!("{}",msg);
-    process::exit(1);
+fn die<T: Display>(msg: T) -> ! {
+    eprintln!("Error: {}", msg);
+    exit(1);
 }
 
-fn file_exists(path: &str) -> bool {
-    Path::new(path).exists()
+#[derive(Debug)]
+enum PlnkError<T: Display> {
+    Config(T),
+    HostsError(T),
+    PermissionError(T),
+    BackupError(T),
+    IllegalState(T),
+    Io(T),
 }
 
-fn backup_hosts() -> io::Result<()> {
-    let content = fs::read_to_string(HOSTS_FILE)
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "cannot read host file"))?;
-    
-    fs::write(HOSTS_BACKUP, content)
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "cannot create backup file"))?;
-    
-    Ok(())
-}
-
-fn restore_hosts() -> Result<(), &'static str> {
-    if !file_exists(HOSTS_BACKUP) {
-        return Err("no backup file found");
-    }
-
-    if let Err(_) = fs::rename(HOSTS_BACKUP, HOSTS_FILE) {
-        return Err("failed to restore hosts file");
-    }
-
-    println!("urls unblocked");
-    Ok(())
-}
-
-fn is_blocked_line(line: &str, site_to_block: &Vec<String>) -> bool {
-    let parts: Vec<&str> = line.split_whitespace().collect();
-    if parts.len() < 2 {
-        return false;
-    }
-    let host = parts[1];
-    site_to_block.iter().any(|d| d == host)
-}
-
-fn check_already_blocked(site_to_block: &Vec<String>) -> bool {
-    if let Ok(file) = fs::File::open(HOSTS_FILE) {
-        let reader = BufReader::new(file);
-        for line in reader.lines() {
-            if let Ok(line_content) = line {
-                if is_blocked_line(&line_content, site_to_block) {
-                    return true
-                }
-            }
+impl<T: Display> Display for PlnkError<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            PlnkError::Config(msg) => write!(f, "Config error: {}", msg),
+            PlnkError::HostsError(msg) => write!(f, "Hosts file error: {}", msg),
+            PlnkError::PermissionError(msg) => write!(f, "Permission denied: {}", msg),
+            PlnkError::BackupError(msg) => write!(f, "Backup error: {}", msg),
+            PlnkError::IllegalState(msg) => write!(f, "Illegal state: {}", msg),
+            PlnkError::Io(msg) => write!(f, "Io error: {}", msg),
         }
     }
-    false 
 }
 
-fn block_sites(sites_to_block: &Vec<String>) -> Result<(), String> {
-    if check_already_blocked(sites_to_block) {
-        return Err("urls already blocked".to_string());
+
+fn backup_hosts() -> Result<(), PlnkError<String>> {
+    let content = read_to_string(HOSTS_FILE)
+        .map_err(|_| PlnkError::BackupError("cannot read host file".to_string()))?;
+    
+    write(HOSTS_BACKUP, content)
+        .map_err(|_| PlnkError::BackupError("cannot create backup file".to_string()))?;
+    
+    Ok(())
+}
+
+
+fn restore_hosts() -> Result<(), PlnkError<String>> {
+    if !Path::new(HOSTS_BACKUP).exists() {
+        return Err(PlnkError::BackupError("Cannot read host file".to_string()));
     }
 
-    // Backup original hosts file
-    backup_hosts().map_err(|e| format!("backup failed: {}", e))?;
+    rename(HOSTS_BACKUP, HOSTS_FILE)
+        .map_err(|_| PlnkError::BackupError("Cannot create backup file".to_string()))?;
 
-    // Append blocked domains
+    println!("URLs unblocked successfully");
+    Ok(())
+}
+
+fn is_blocked_line(line: &str, domains: &[String]) -> bool {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+    if parts.len() < 2 || parts[0] != URL_TO_REDIRECT {
+        return false;
+    }
+
+    let host = parts[1];
+    
+    domains.iter().any(|d| d == host)
+}
+
+fn check_already_blocked(domains: &[String]) -> Result<bool, PlnkError<String>> {
+    let file = fs::File::open(HOSTS_FILE)
+        .map_err(|_| PlnkError::HostsError("cannot read hosts file".to_string()))?;
+
+    let reader = BufReader::new(file);
+    for line in reader.lines() {
+        let line_current = line
+            .map_err(|_| PlnkError::HostsError("Error reading line from hosts file".to_string()))?;
+
+        if is_blocked_line(&line_current, domains) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn block_domains(domains: &[String]) -> Result<(), PlnkError<String>> {
+    if domains.is_empty() {
+        return Err(PlnkError::IllegalState("No domain to block".to_string()))?;
+    }
+
+    if check_already_blocked(domains)? {
+        return Err(PlnkError::IllegalState("URLs already blocked".to_string()))?;
+    }
+
+    backup_hosts()?;
+
     let mut hosts_file = fs::OpenOptions::new()
         .append(true)
         .open(HOSTS_FILE)
-        .map_err(|_| format!("cannot write to {}", HOSTS_FILE))?;
+        .map_err(|_| PlnkError::HostsError("Cannot write to hosts file".to_string()))?;
 
-    writeln!(hosts_file, "\n# plnk url blocking")
-        .map_err(|_| format!("failed to write to {}", HOSTS_FILE))?;
+    writeln!(hosts_file, "\n{}", PLNK_MARKER)
+        .map_err(|_| PlnkError::HostsError("Failed to write marker".to_string()))?;
 
-    for domain in sites_to_block {
+    for domain in domains {
         writeln!(hosts_file, "{} {}", URL_TO_REDIRECT, domain)
-            .map_err(|_| "failed to write to hosts file")?;
+            .map_err(|_| PlnkError::HostsError("Failed to write domain entry".to_string()))?;
     }
 
-    println!("urls blocked");
+    println!("URLs blocked successfully");
     Ok(())
 }
 
-fn usage() -> ! {
-    let argv0 = env::args().next().unwrap_or_else(|| "program".to_string());
-    eprintln!("usage: {} [u]", argv0);
-    eprintln!("  u  unblock");
-    eprintln!("  h  usage");
-    process::exit(1);
+fn usage() {
+    eprintln!("Usage: plnk [OPTION]");
+    eprintln!("Block or unblock URLs by modifying /etc/hosts");
+    eprintln!("");
+    eprintln!("Options:");
+    eprintln!("  u, unblock    Restore original hosts file");
+    eprintln!("  h, help       Show this help message");
+    eprintln!("  (no args)     Block URLs from config");
+    eprintln!("");
+    eprintln!("Environment:");
+    eprintln!("  {}        Path to TOML config file ()", PLNK_ENV);
+    exit(1)
 }
 
-fn check_root() -> Result<(), &'static str> {
+fn check_root() -> Result<(), PlnkError<String>> {
     #[cfg(unix)]
     {
         if let Err(_) = fs::OpenOptions::new().append(true).open(HOSTS_FILE) {
-            return Err("must run as root");
+            return Err(PlnkError::PermissionError("must run as root".to_string()));
         }
         Ok(())
     }
 }
 
-fn load_config() -> Result<Config, String> {
-    let config_path = env::var("PLNK_CONFIG").unwrap_or_else(|_| format!("failed to Read {}", PLNK_ENV));
+fn load_config() -> Result<Config, PlnkError<String>> {
+    let config_path = var(PLNK_ENV)
+        .map_err(|_| PlnkError::Config(format!("Environment variable {} not set", PLNK_ENV)))?;
 
-    let content = fs::read_to_string(Path::new(&config_path))
-        .map_err(|_| format!("failed to read {}", config_path))?;
+    let content = read_to_string(&config_path)
+        .map_err(|_| PlnkError::Config(format!("Failed to read config file: {}", config_path)))?;
 
     let config: Config = toml::from_str(&content)
-        .map_err(|err| format!("failed to parse {}: {}", config_path, err))?;
+        .map_err(|err| PlnkError::Io(format!("Failed to parse config: {}", err)))?;
+
+    for domain in &config.blocked_domains {
+        if domain.trim().is_empty() {
+            return Err(PlnkError::Config("Empty domain found in config".to_string()));
+        }
+    }
 
     Ok(config)
 }
 
-fn main() {
-    let config = load_config().unwrap_or_else(|err| die(&err));
-    let args: Vec<String> = env::args().collect();
+fn run() -> Result<(), PlnkError<String>> {
+    check_root()?;
 
-    check_root().unwrap_or_else(|err|die(&err));
 
-    match args.get(1).map(|s| s.as_str()) {
+    let args: Vec<String> = args().collect();
+
+    match args.get(1).map(|s: &String| s.as_str()) {
         Some("u") => {
-            restore_hosts().unwrap_or_else(|e| die(&e));
+            restore_hosts()?;
         }
-        Some("h") => usage(),
-        Some(_) => usage(),
+        Some("h") | Some("help") | Some("--help") => {
+            usage();
+        }
+        Some(unknown) => {
+            eprintln!("Unknown option: {}", unknown);
+            usage();
+            return Err(PlnkError::Config("Invalid argument".to_string()));
+        }
         None => {
-            block_sites(&config.blocked_domains)
-                .unwrap_or_else(|e| die(&e));
+            let config = load_config()?;
+            block_domains(&config.blocked_domains)?;
         }
     }
+    Ok(())
+}
 
+fn main() {
+    if let Err(err) = run() {
+        die(&err);
+    }
 }
