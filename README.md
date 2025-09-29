@@ -1,10 +1,10 @@
 # plnk
 
-`plnk` is a simple command-line tool for blocking and unblocking specific websites on Unix-based systems by modifying the system's `/etc/hosts` file. It redirects blocked domains to `127.0.0.1` and provides easy backup and restoration functionality.
+`plnk` is a simple command-line tool for blocking and unblocking specific domains on Unix-based systems by modifying the system's `/etc/hosts` file. It redirects blocked domains to `127.0.0.1` and provides easy backup and restoration functionality.
 
 ## Features
 
-* Block a list of websites by redirecting them to `127.0.0.1`
+* Block a list of domains by redirecting them to `127.0.0.1`
 * Automatically backs up your `/etc/hosts` file before making changes
 * Restore the original `/etc/hosts` file with a single command
 * Configurable through a TOML configuration file
@@ -86,12 +86,12 @@ sudo PLNK_CONFIG=/path/to/your/config.toml plnk
 
 All operations require root privileges:
 
-### Block websites:
+### Block domains:
 ```bash
 sudo plnk
 ```
 
-### Unblock websites (restore original hosts file):
+### Unblock domains (restore original hosts file):
 ```bash
 sudo plnk u
 ```
@@ -140,7 +140,7 @@ The tool includes comprehensive error handling for:
 ## Notes
 
 - The program creates a backup at `/etc/hosts.backup` before making any changes
-- If websites are already blocked, the program will exit with an error message
+- If domains are already blocked, the program will exit with an error message
 - Restoring will completely replace the current `/etc/hosts` with the backup
 - Make sure to include both `domain.com` and `www.domain.com` variants in your config for complete blocking
 - The `PLNK_CONFIG` environment variable must be set in the **root user's environment** before running the program
