@@ -136,7 +136,7 @@ fn usage() {
     eprintln!("Block or unblock URLs by modifying /etc/hosts");
     eprintln!("");
     eprintln!("Options:");
-    eprintln!("  u, unblock    Restore original hosts file");
+    eprintln!("  u,            Restore original hosts file");
     eprintln!("  h, help       Show this help message");
     eprintln!("  (no args)     Block URLs from config");
     eprintln!("");
@@ -184,13 +184,13 @@ fn run() -> Result<(), PlnkError<String>> {
         Some("u") => {
             restore_hosts()?;
         }
-        Some("h") | Some("help") | Some("--help") => {
+        Some("h") | Some("help") => {
             usage();
         }
         Some(unknown) => {
             eprintln!("Unknown option: {}", unknown);
             usage();
-            return Err(PlnkError::Config("Invalid argument".to_string()));
+            return Err(PlnkError::IllegalState("Invalid argument".to_string()));
         }
         None => {
             let config = load_config()?;
