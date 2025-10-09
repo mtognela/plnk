@@ -15,7 +15,8 @@ use std::fmt::Display;
 const HOSTS_FILE: &str = "/etc/hosts";
 const HOSTS_BACKUP: &str = "/etc/hosts.backup";
 const URL_TO_REDIRECT: &str = "127.0.0.1";
-const PLNK_ENV: &str = "PLNK_CONFIG";
+const PLNK_PARTIAL_PATH: &str = ".config/plnk/config.toml";
+const HOME_ENV: &str = "HOME"; 
 const PLNK_MARKER: &str = "# plnk url blocking";
 
 #[derive(Deserialize)]
@@ -141,7 +142,7 @@ fn usage() {
     eprintln!("  (no args)     Block URLs from config");
     eprintln!("");
     eprintln!("Environment:");
-    eprintln!("  {}        Path to TOML config file ()", PLNK_ENV);
+    eprintln!("  {}        Path to TOML config file", PLNK_PARTIAL_PATH);
     exit(1)
 }
 
@@ -156,9 +157,11 @@ fn check_root() -> Result<(), PlnkError<String>> {
 }
 
 fn load_config() -> Result<Config, PlnkError<String>> {
-    let config_path = var(PLNK_ENV)
-        .map_err(|_| PlnkError::Config(format!("Environment variable {} not set", PLNK_ENV)))?;
+    let config_home_path = var(HOME_ENV)
+        .map_err(|_| PlnkError::Config(format!("Environment variable {} not set", HOME_ENV)))?;
 
+    let config_path = format!("{}/{}", config_home_path, PLNK_PARTIAL_PATH);
+    
     let content = read_to_string(&config_path)
         .map_err(|_| PlnkError::Config(format!("Failed to read config file: {}", config_path)))?;
 

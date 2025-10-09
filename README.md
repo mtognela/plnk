@@ -42,11 +42,11 @@ cargo build --release
 
 ## Configuration
 
-`plnk` reads its configuration from a TOML file specified by the `PLNK_CONFIG` environment variable.
+`plnk` reads its configuration from a TOML file under this path: `$HOME/.config/plnk/config.toml`
 
 ### Setting up the config file:
 
-1. Create a `config.toml` file:
+#### Create a `config.toml` file under this path: `$HOME/.config/plnk/config.toml`:
 
 ```toml
 blocked_domains = [
@@ -59,27 +59,6 @@ blocked_domains = [
     "youtube.com",
     "www.youtube.com"
 ]
-```
-
-2. Set the environment variable **as root** to point to your config file:
-
-```bash
-sudo su
-export PLNK_CONFIG=/path/to/your/config.toml
-```
-
-Or add it to root's shell profile for persistence:
-
-```bash
-sudo su
-echo 'export PLNK_CONFIG=/path/to/your/config.toml' >> /root/.bashrc
-source /root/.bashrc
-```
-
-Alternatively, you can set it when running the command:
-
-```bash
-sudo PLNK_CONFIG=/path/to/your/config.toml plnk
 ```
 
 ## Usage
