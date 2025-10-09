@@ -42,11 +42,11 @@ cargo build --release
 
 ## Configuration
 
-`plnk` reads its configuration from a TOML file under this path: `$HOME/.config/plnk/config.toml`
+`plnk` reads its configuration from a TOML file under this path: `/root/.config/plnk/config.toml`
 
 ### Setting up the config file:
 
-#### Create a `config.toml` file under this path: `$HOME/.config/plnk/config.toml`:
+#### Create a `config.toml` file under this path: `/root/.config/plnk/config.toml`:
 
 ```toml
 blocked_domains = [
@@ -59,6 +59,12 @@ blocked_domains = [
     "youtube.com",
     "www.youtube.com"
 ]
+```
+
+#### Symbolic link it to `/home/your-username/.config/plnk/config.toml`:
+
+```bash
+sudo ln -s /root/.config/plnk/config.toml /home/your-username/.config/plnk/config.toml 
 ```
 
 ## Usage
