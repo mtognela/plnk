@@ -140,9 +140,6 @@ fn usage() {
     eprintln!("  u,            Restore original hosts file");
     eprintln!("  h, help       Show this help message");
     eprintln!("  (no args)     Block URLs from config");
-    eprintln!("");
-    eprintln!("Environment:");
-    eprintln!("  {}        Path to TOML config file", PLNK_PARTIAL_PATH);
     exit(1)
 }
 
