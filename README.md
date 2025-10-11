@@ -75,7 +75,7 @@ plnk help
 
 1. **Blocking**: When you run `plnk` without arguments, it:
    - Checks if you have root privileges
-   - Loads the configuration from the file specified by `PLNK_CONFIG`
+   - Loads the configuration from the file specified at `/etc/plnk/config.toml`
    - Verifies that domains aren't already blocked
    - Creates a backup of `/etc/hosts` at `/etc/hosts.backup`
    - Appends the blocked domains to `/etc/hosts` with the marker `# plnk url blocking`
@@ -111,10 +111,8 @@ The tool includes comprehensive error handling for:
 - If domains are already blocked, the program will exit with an error message
 - Restoring will completely replace the current `/etc/hosts` with the backup
 - Make sure to include both `domain.com` and `www.domain.com` variants in your config for complete blocking
-- The `PLNK_CONFIG` environment variable must be set in the **root user's environment** before running the program
-- You can either set it permanently in root's profile or pass it when running the command
 
-## Autor 
+## Author 
 
 Mattia Tognela \<tognelamattia at protonmail dot com\>
 
