@@ -137,7 +137,7 @@ fn usage() {
     eprintln!("Options:");
     eprintln!("  u,            Restore original hosts file");
     eprintln!("  h, help       Show this help message");
-    eprintln!("  (no args)     Block URLs from config");
+    eprintln!(" (no args)      Block URLs from config");
     exit(1)
 }
 
@@ -170,7 +170,6 @@ fn load_config() -> Result<Config, PlnkError<String>> {
 
 fn run() -> Result<(), PlnkError<String>> {
     check_root()?;
-
 
     let args: Vec<String> = args().collect();
 
