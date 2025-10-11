@@ -1,5 +1,4 @@
 use std::env::args;
-use std::env::var;
 use std::fmt;
 use std::fmt::Formatter;
 use std::fs;
@@ -15,8 +14,7 @@ use std::fmt::Display;
 const HOSTS_FILE: &str = "/etc/hosts";
 const HOSTS_BACKUP: &str = "/etc/hosts.backup";
 const URL_TO_REDIRECT: &str = "127.0.0.1";
-const PLNK_PARTIAL_PATH: &str = ".config/plnk/config.toml";
-const HOME_ENV: &str = "HOME"; 
+const PLNK_CONFIG_PATH: &str = "/etc/plnk/config.toml";
 const PLNK_MARKER: &str = "# plnk url blocking";
 
 #[derive(Deserialize)]
@@ -154,13 +152,9 @@ fn check_root() -> Result<(), PlnkError<String>> {
 }
 
 fn load_config() -> Result<Config, PlnkError<String>> {
-    let config_home_path = var(HOME_ENV)
-        .map_err(|_| PlnkError::Config(format!("Environment variable {} not set", HOME_ENV)))?;
-
-    let config_path = format!("{}/{}", config_home_path, PLNK_PARTIAL_PATH);
     
-    let content = read_to_string(&config_path)
-        .map_err(|_| PlnkError::Config(format!("Failed to read config file: {}", config_path)))?;
+    let content = read_to_string(PLNK_CONFIG_PATH)
+        .map_err(|_| PlnkError::Config(format!("Failed to read config file: {}", PLNK_CONFIG_PATH)))?;
 
     let config: Config = toml::from_str(&content)
         .map_err(|err| PlnkError::Io(format!("Failed to parse config: {}", err)))?;

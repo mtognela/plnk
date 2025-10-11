@@ -17,36 +17,19 @@
 
 ```bash
 cargo install --git https://github.com/mtognela/plnk.git
+# symbolic link it to make it system available
+sudo ln -sf /home/"$USER"/.cargo/bin/plnk /usr/local/bin/plnk
 ```
 
 This will install `plnk` to your Cargo bin directory (usually `~/.cargo/bin/`), which should be in your PATH.
 
-### Option 2: Build from source
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/mtognela/plnk.git
-cd plnk
-```
-
-2. Build the project using Rust:
-
-```bash
-cargo build --release
-```
-
-3. The compiled binary will be available at `target/release/plnk`
-
-> **Note**: Modifying `/etc/hosts` requires root privileges.
-
 ## Configuration
 
-`plnk` reads its configuration from a TOML file under this path: `/root/.config/plnk/config.toml`
+`plnk` reads its configuration fryom a TOML file under this path: `/etc/plnk/config.toml`
 
 ### Setting up the config file:
 
-#### Create a `config.toml` file under this path: `/root/.config/plnk/config.toml`:
+#### Create a `config.toml` file under this path: `/etc/plnk/config.toml`:
 
 ```toml
 blocked_domains = [
@@ -61,10 +44,10 @@ blocked_domains = [
 ]
 ```
 
-#### Symbolic link it to `/home/your-username/.config/plnk/config.toml`:
+#### Symbolic link it to `/home/$USER/.config/plnk/config.toml`:
 
 ```bash
-sudo ln -s /root/.config/plnk/config.toml /home/your-username/.config/plnk/config.toml 
+sudo ln -s /etc/plnk/config.toml /home/$USER/.config/plnk/config.toml 
 ```
 
 ## Usage
@@ -130,6 +113,10 @@ The tool includes comprehensive error handling for:
 - Make sure to include both `domain.com` and `www.domain.com` variants in your config for complete blocking
 - The `PLNK_CONFIG` environment variable must be set in the **root user's environment** before running the program
 - You can either set it permanently in root's profile or pass it when running the command
+
+## Autor 
+
+Mattia Tognela \<tognelamattia at protonmail dot com\>
 
 ## License
 
